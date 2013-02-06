@@ -1,5 +1,6 @@
 /* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* vim: set shiftwidth=2 tabstop=2 autoindent cindent expandtab: */
+/* globals expect, it, describe, CFFCompiler, CFFParser, CFFIndex, CFFStrings */
 
 'use strict';
 
@@ -32,7 +33,7 @@ describe('font', function() {
     fontData.push(parseInt(hex, 16));
   }
   var bytes = new Uint8Array(fontData);
-  fontData = {getBytes: function() { return bytes}};
+  fontData = {getBytes: function() { return bytes; }};
 
   function bytesToString(bytesArray) {
     var str = '';
@@ -94,6 +95,28 @@ describe('font', function() {
       expect(topDict.getByName('FontBBox')).toEqual([-168, -218, 1000, 898]);
       expect(topDict.getByName('CharStrings')).toEqual(94);
       expect(topDict.getByName('Private')).toEqual([45, 102]);
+    });
+
+    it('parses a CharString having cntrmask', function() {
+      var bytes = new Uint8Array([0, 1, // count
+                                  1,  // offsetSize
+                                  0,  // offset[0]
+                                  38, // end
+                                  149, 149, 149, 149, 149, 149, 149, 149,
+                                  149, 149, 149, 149, 149, 149, 149, 149,
+                                  1,  // hstem
+                                  149, 149, 149, 149, 149, 149, 149, 149,
+                                  149, 149, 149, 149, 149, 149, 149, 149,
+                                  3,  // vstem
+                                  20, // cntrmask
+                                  22, 22, // fail if misparsed as hmoveto
+                                  14  // endchar
+                                ]);
+      parser.bytes = bytes;
+      var charStrings = parser.parseCharStrings(0);
+      expect(charStrings.count).toEqual(1);
+      // shoudn't be sanitized
+      expect(charStrings.get(0).length).toEqual(38);
     });
 
     it('parses predefined charsets', function() {
